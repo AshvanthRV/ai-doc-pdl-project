@@ -1,0 +1,469 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="MediBook - Book doctor consultations online. Find specialists, schedule appointments, and manage your healthcare journey.">
+  <title>MediBook — Patient Portal</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div id="app">
+    <!-- Auth Screen -->
+    <div id="auth-screen" class="screen active">
+      <div class="auth-container">
+        <div class="auth-hero">
+          <div class="auth-hero-content">
+            <div class="auth-logo">
+              <span class="material-icons-round">local_hospital</span>
+              <span>MediBook</span>
+            </div>
+            <h1>Your Health,<br><span class="gradient-text">Our Priority</span></h1>
+            <p>Book appointments with top specialists. Get consultations in-person, via video call, or phone — all from the comfort of your home.</p>
+            <div class="auth-hero-stats">
+              <div class="stat-item"><span class="stat-number">500+</span><span class="stat-label">Doctors</span></div>
+              <div class="stat-item"><span class="stat-number">50K+</span><span class="stat-label">Patients</span></div>
+              <div class="stat-item"><span class="stat-number">4.8</span><span class="stat-label">Rating</span></div>
+            </div>
+          </div>
+        </div>
+        <div class="auth-form-section">
+          <div class="auth-form-wrapper">
+            <div class="auth-tabs">
+              <button class="auth-tab active" data-tab="login" onclick="switchAuthTab('login')">Sign In</button>
+              <button class="auth-tab" data-tab="register" onclick="switchAuthTab('register')">Sign Up</button>
+            </div>
+
+            <!-- Login Form -->
+            <form id="login-form" class="auth-form active" onsubmit="handleLogin(event)">
+              <h2>Welcome Back</h2>
+              <p class="form-subtitle">Sign in to manage your appointments</p>
+              <div class="form-group">
+                <label for="login-email">Email Address</label>
+                <div class="input-wrapper">
+                  <span class="material-icons-round input-icon">email</span>
+                  <input type="email" id="login-email" placeholder="you@example.com" required>
+                </div>
+              </div>
+              <div class="form-group">
+                <label for="login-password">Password</label>
+                <div class="input-wrapper">
+                  <span class="material-icons-round input-icon">lock</span>
+                  <input type="password" id="login-password" placeholder="Enter your password" required>
+                </div>
+              </div>
+              <button type="submit" class="btn btn-primary btn-full" id="login-btn">
+                <span>Sign In</span>
+                <span class="material-icons-round">arrow_forward</span>
+              </button>
+              <div class="auth-demo-hint">
+                <span class="material-icons-round">info</span>
+                <span>Demo: john@patient.com / password123</span>
+              </div>
+            </form>
+
+            <!-- Register Form -->
+            <form id="register-form" class="auth-form" onsubmit="handleRegister(event)">
+              <h2>Create Account</h2>
+              <p class="form-subtitle">Join MediBook to book appointments</p>
+              <div class="form-row">
+                <div class="form-group">
+                  <label for="register-name">Full Name</label>
+                  <div class="input-wrapper">
+                    <span class="material-icons-round input-icon">person</span>
+                    <input type="text" id="register-name" placeholder="John Doe" required>
+                  </div>
+                </div>
+                <div class="form-group">
+                  <label for="register-phone">Phone</label>
+                  <div class="input-wrapper">
+                    <span class="material-icons-round input-icon">phone</span>
+                    <input type="tel" id="register-phone" placeholder="+1-555-0100">
+                  </div>
+                </div>
+              </div>
+              <div class="form-group">
+                <label for="register-email">Email Address</label>
+                <div class="input-wrapper">
+                  <span class="material-icons-round input-icon">email</span>
+                  <input type="email" id="register-email" placeholder="you@example.com" required>
+                </div>
+              </div>
+              <div class="form-group">
+                <label for="register-password">Password</label>
+                <div class="input-wrapper">
+                  <span class="material-icons-round input-icon">lock</span>
+                  <input type="password" id="register-password" placeholder="Min 6 characters" required minlength="6">
+                </div>
+              </div>
+              <div class="form-row">
+                <div class="form-group">
+                  <label for="register-gender">Gender</label>
+                  <div class="input-wrapper">
+                    <span class="material-icons-round input-icon">wc</span>
+                    <select id="register-gender">
+                      <option value="">Select</option>
+                      <option value="Male">Male</option>
+                      <option value="Female">Female</option>
+                      <option value="Other">Other</option>
+                    </select>
+                  </div>
+                </div>
+                <div class="form-group">
+                  <label for="register-dob">Date of Birth</label>
+                  <div class="input-wrapper">
+                    <span class="material-icons-round input-icon">cake</span>
+                    <input type="date" id="register-dob">
+                  </div>
+                </div>
+              </div>
+              <button type="submit" class="btn btn-primary btn-full" id="register-btn">
+                <span>Create Account</span>
+                <span class="material-icons-round">arrow_forward</span>
+              </button>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Main App -->
+    <div id="main-app" class="screen">
+      <!-- Sidebar -->
+      <aside class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+          <div class="sidebar-logo">
+            <span class="material-icons-round">local_hospital</span>
+            <span>MediBook</span>
+          </div>
+        </div>
+        <nav class="sidebar-nav">
+          <a href="#" class="nav-item active" data-page="dashboard" onclick="navigateTo('dashboard')">
+            <span class="material-icons-round">dashboard</span>
+            <span>Dashboard</span>
+          </a>
+          <a href="#" class="nav-item" data-page="doctors" onclick="navigateTo('doctors')">
+            <span class="material-icons-round">medical_services</span>
+            <span>Find Doctors</span>
+          </a>
+          <a href="#" class="nav-item" data-page="appointments" onclick="navigateTo('appointments')">
+            <span class="material-icons-round">calendar_today</span>
+            <span>My Appointments</span>
+          </a>
+          <a href="#" class="nav-item" data-page="profile" onclick="navigateTo('profile')">
+            <span class="material-icons-round">person</span>
+            <span>Profile</span>
+          </a>
+        </nav>
+        <div class="sidebar-footer">
+          <button class="btn-logout" onclick="logout()">
+            <span class="material-icons-round">logout</span>
+            <span>Sign Out</span>
+          </button>
+        </div>
+      </aside>
+
+      <!-- Main Content -->
+      <main class="main-content">
+        <!-- Top Bar -->
+        <header class="topbar">
+          <button class="menu-toggle" onclick="toggleSidebar()">
+            <span class="material-icons-round">menu</span>
+          </button>
+          <div class="topbar-search">
+            <span class="material-icons-round">search</span>
+            <input type="text" placeholder="Search doctors, specialties..." id="global-search" onkeyup="handleGlobalSearch(event)">
+          </div>
+          <div class="topbar-actions">
+            <button class="notification-btn" onclick="toggleNotifications()" id="notif-btn">
+              <span class="material-icons-round">notifications</span>
+              <span class="notif-badge" id="notif-badge" style="display:none">0</span>
+            </button>
+            <div class="user-menu" onclick="toggleUserMenu()">
+              <div class="user-avatar" id="user-avatar">JD</div>
+              <span class="user-name" id="user-name">John Doe</span>
+              <span class="material-icons-round">expand_more</span>
+            </div>
+          </div>
+        </header>
+
+        <!-- Notification Panel -->
+        <div class="notification-panel" id="notification-panel">
+          <div class="notif-header">
+            <h3>Notifications</h3>
+            <button onclick="markAllRead()" class="btn-text">Mark all read</button>
+          </div>
+          <div class="notif-list" id="notif-list">
+            <!-- Notifications rendered here -->
+          </div>
+        </div>
+
+        <!-- Pages -->
+        <div class="page-container">
+          <!-- Dashboard Page -->
+          <div id="page-dashboard" class="page active">
+            <div class="page-header">
+              <div>
+                <h1 id="greeting">Good Evening, John!</h1>
+                <p class="page-subtitle">Here's your health dashboard overview</p>
+              </div>
+            </div>
+
+            <div class="stats-grid">
+              <div class="stat-card stat-card-blue">
+                <div class="stat-card-icon"><span class="material-icons-round">event</span></div>
+                <div class="stat-card-info">
+                  <span class="stat-card-value" id="stat-total">0</span>
+                  <span class="stat-card-label">Total Appointments</span>
+                </div>
+              </div>
+              <div class="stat-card stat-card-green">
+                <div class="stat-card-icon"><span class="material-icons-round">check_circle</span></div>
+                <div class="stat-card-info">
+                  <span class="stat-card-value" id="stat-confirmed">0</span>
+                  <span class="stat-card-label">Confirmed</span>
+                </div>
+              </div>
+              <div class="stat-card stat-card-amber">
+                <div class="stat-card-icon"><span class="material-icons-round">schedule</span></div>
+                <div class="stat-card-info">
+                  <span class="stat-card-value" id="stat-pending">0</span>
+                  <span class="stat-card-label">Pending</span>
+                </div>
+              </div>
+              <div class="stat-card stat-card-purple">
+                <div class="stat-card-icon"><span class="material-icons-round">task_alt</span></div>
+                <div class="stat-card-info">
+                  <span class="stat-card-value" id="stat-completed">0</span>
+                  <span class="stat-card-label">Completed</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="dashboard-grid">
+              <div class="card">
+                <div class="card-header">
+                  <h3><span class="material-icons-round">upcoming</span> Upcoming Appointments</h3>
+                  <a href="#" class="btn-text" onclick="navigateTo('appointments')">View All</a>
+                </div>
+                <div class="card-body" id="upcoming-list">
+                  <!-- Upcoming appointments rendered here -->
+                </div>
+              </div>
+              <div class="card">
+                <div class="card-header">
+                  <h3><span class="material-icons-round">history</span> Recent Doctors</h3>
+                  <a href="#" class="btn-text" onclick="navigateTo('doctors')">Find More</a>
+                </div>
+                <div class="card-body" id="recent-doctors-list">
+                  <!-- Recent doctors rendered here -->
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Doctors Page -->
+          <div id="page-doctors" class="page">
+            <div class="page-header">
+              <div>
+                <h1>Find a Doctor</h1>
+                <p class="page-subtitle">Browse our network of experienced specialists</p>
+              </div>
+            </div>
+
+            <div class="filters-bar">
+              <div class="filter-group">
+                <select id="filter-specialty" onchange="filterDoctors()">
+                  <option value="">All Specialties</option>
+                </select>
+              </div>
+              <div class="filter-group">
+                <select id="filter-sort" onchange="filterDoctors()">
+                  <option value="rating">Highest Rated</option>
+                  <option value="experience">Most Experienced</option>
+                  <option value="fee_low">Fee: Low to High</option>
+                  <option value="fee_high">Fee: High to Low</option>
+                </select>
+              </div>
+              <div class="filter-group search-filter">
+                <span class="material-icons-round">search</span>
+                <input type="text" placeholder="Search by name..." id="filter-search" oninput="filterDoctors()">
+              </div>
+            </div>
+
+            <div class="doctors-grid" id="doctors-grid">
+              <!-- Doctor cards rendered here -->
+            </div>
+          </div>
+
+          <!-- Appointments Page -->
+          <div id="page-appointments" class="page">
+            <div class="page-header">
+              <div>
+                <h1>My Appointments</h1>
+                <p class="page-subtitle">Track and manage all your appointments</p>
+              </div>
+            </div>
+
+            <div class="appointment-tabs">
+              <button class="apt-tab active" onclick="filterAppointments('all')">All</button>
+              <button class="apt-tab" onclick="filterAppointments('pending')">Pending</button>
+              <button class="apt-tab" onclick="filterAppointments('confirmed')">Confirmed</button>
+              <button class="apt-tab" onclick="filterAppointments('completed')">Completed</button>
+              <button class="apt-tab" onclick="filterAppointments('cancelled')">Cancelled</button>
+            </div>
+
+            <div class="appointments-list" id="appointments-list">
+              <!-- Appointments rendered here -->
+            </div>
+          </div>
+
+          <!-- Profile Page -->
+          <div id="page-profile" class="page">
+            <div class="page-header">
+              <div>
+                <h1>My Profile</h1>
+                <p class="page-subtitle">Manage your personal information</p>
+              </div>
+            </div>
+
+            <div class="profile-card">
+              <div class="profile-header-section">
+                <div class="profile-avatar-large" id="profile-avatar-large">JD</div>
+                <div class="profile-info-header">
+                  <h2 id="profile-name">John Doe</h2>
+                  <p id="profile-email">john@patient.com</p>
+                </div>
+              </div>
+              <form onsubmit="updateProfile(event)" class="profile-form">
+                <div class="form-row">
+                  <div class="form-group">
+                    <label for="profile-edit-name">Full Name</label>
+                    <input type="text" id="profile-edit-name">
+                  </div>
+                  <div class="form-group">
+                    <label for="profile-edit-phone">Phone</label>
+                    <input type="tel" id="profile-edit-phone">
+                  </div>
+                </div>
+                <div class="form-row">
+                  <div class="form-group">
+                    <label for="profile-edit-gender">Gender</label>
+                    <select id="profile-edit-gender">
+                      <option value="">Select</option>
+                      <option value="Male">Male</option>
+                      <option value="Female">Female</option>
+                      <option value="Other">Other</option>
+                    </select>
+                  </div>
+                  <div class="form-group">
+                    <label for="profile-edit-dob">Date of Birth</label>
+                    <input type="date" id="profile-edit-dob">
+                  </div>
+                </div>
+                <div class="form-row">
+                  <div class="form-group">
+                    <label for="profile-edit-blood">Blood Group</label>
+                    <select id="profile-edit-blood">
+                      <option value="">Select</option>
+                      <option value="A+">A+</option>
+                      <option value="A-">A-</option>
+                      <option value="B+">B+</option>
+                      <option value="B-">B-</option>
+                      <option value="AB+">AB+</option>
+                      <option value="AB-">AB-</option>
+                      <option value="O+">O+</option>
+                      <option value="O-">O-</option>
+                    </select>
+                  </div>
+                  <div class="form-group">
+                    <label for="profile-edit-address">Address</label>
+                    <input type="text" id="profile-edit-address">
+                  </div>
+                </div>
+                <button type="submit" class="btn btn-primary">
+                  <span class="material-icons-round">save</span>
+                  <span>Save Changes</span>
+                </button>
+              </form>
+            </div>
+          </div>
+        </div>
+      </main>
+    </div>
+
+    <!-- Booking Modal -->
+    <div class="modal-overlay" id="booking-modal">
+      <div class="modal">
+        <div class="modal-header">
+          <h2>Book Appointment</h2>
+          <button class="modal-close" onclick="closeModal('booking-modal')">
+            <span class="material-icons-round">close</span>
+          </button>
+        </div>
+        <div class="modal-body" id="booking-modal-body">
+          <!-- Booking form rendered here -->
+        </div>
+      </div>
+    </div>
+
+    <!-- Doctor Detail Modal -->
+    <div class="modal-overlay" id="doctor-modal">
+      <div class="modal modal-large">
+        <div class="modal-header">
+          <h2>Doctor Profile</h2>
+          <button class="modal-close" onclick="closeModal('doctor-modal')">
+            <span class="material-icons-round">close</span>
+          </button>
+        </div>
+        <div class="modal-body" id="doctor-modal-body">
+          <!-- Doctor detail rendered here -->
+        </div>
+      </div>
+    </div>
+
+    <!-- Prescription Print / View Modal -->
+    <div class="modal-overlay" id="prescription-modal">
+      <div class="modal" style="max-width: 680px">
+        <div class="modal-header">
+          <h2>Medical Prescription</h2>
+          <div style="display:flex;gap:var(--space-sm);align-items:center">
+            <button class="btn btn-sm btn-primary" onclick="printPrescriptionDoc()">
+              <span class="material-icons-round">print</span> Print Rx
+            </button>
+            <button class="modal-close" onclick="closeModal('prescription-modal')">
+              <span class="material-icons-round">close</span>
+            </button>
+          </div>
+        </div>
+        <div class="modal-body" id="prescription-modal-body"></div>
+      </div>
+    </div>
+
+    <!-- Virtual Teleconsultation Video Room Modal -->
+    <div class="modal-overlay" id="video-modal">
+      <div class="modal" style="max-width: 860px; max-height: 92vh; background: #0b0f19;">
+        <div class="modal-header" style="background:#111827; border-color: rgba(255,255,255,0.08)">
+          <div style="display:flex;align-items:center;gap:var(--space-sm)">
+            <span class="live-dot" style="width:10px;height:10px;border-radius:50%;background:#ef4444;box-shadow:0 0 8px #ef4444;animation:pulse 1.5s infinite"></span>
+            <h2>Virtual Consultation Room</h2>
+            <span class="status-badge status-confirmed" id="video-call-timer">00:00</span>
+          </div>
+          <button class="modal-close" onclick="endVideoCall()">
+            <span class="material-icons-round">close</span>
+          </button>
+        </div>
+        <div class="modal-body" id="video-modal-body" style="padding:var(--space-lg)"></div>
+      </div>
+    </div>
+
+    <!-- Toast Container -->
+    <div class="toast-container" id="toast-container"></div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>

@@ -1,0 +1,20 @@
+{
+  "name": "doctor-consultation-booking",
+  "version": "1.0.0",
+  "description": "Full-stack doctor consultation appointment booking system with 2-client architecture",
+  "main": "server/index.js",
+  "scripts": {
+    "start:server": "node server/index.js",
+    "start:patient": "npx -y http-server patient-portal -p 3001 -c-1 --cors",
+    "start:doctor": "npx -y http-server doctor-dashboard -p 3002 -c-1 --cors",
+    "dev": "concurrently \"npm run start:server\" \"npm run start:patient\" \"npm run start:doctor\"",
+    "seed": "node server/seed.js"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "express": "^4.18.2",
+    "bcryptjs": "^2.4.3",
+    "jsonwebtoken": "^9.0.2",
+    "concurrently": "^8.2.2"
+  }
+}

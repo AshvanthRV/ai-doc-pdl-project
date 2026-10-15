@@ -1,0 +1,426 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="MediBook Doctor Dashboard - Manage your appointments, patients, and schedule efficiently.">
+  <title>MediBook — Doctor Dashboard</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div id="app">
+    <!-- Auth Screen -->
+    <div id="auth-screen" class="screen active">
+      <div class="auth-container">
+        <div class="auth-hero">
+          <div class="auth-hero-content">
+            <div class="auth-logo">
+              <span class="material-icons-round">local_hospital</span>
+              <span>MediBook</span>
+            </div>
+            <h1>Doctor<br><span class="gradient-text">Dashboard</span></h1>
+            <p>Manage your appointments, track patient visits, and grow your practice — all from one powerful dashboard.</p>
+            <div class="auth-hero-features">
+              <div class="feature-item">
+                <span class="material-icons-round">calendar_month</span>
+                <span>Smart Scheduling</span>
+              </div>
+              <div class="feature-item">
+                <span class="material-icons-round">group</span>
+                <span>Patient Management</span>
+              </div>
+              <div class="feature-item">
+                <span class="material-icons-round">insights</span>
+                <span>Analytics & Insights</span>
+              </div>
+              <div class="feature-item">
+                <span class="material-icons-round">notifications_active</span>
+                <span>Real-time Alerts</span>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="auth-form-section">
+          <div class="auth-form-wrapper">
+            <h2>Doctor Sign In</h2>
+            <p class="form-subtitle">Access your dashboard and manage appointments</p>
+
+            <form id="login-form" onsubmit="handleLogin(event)">
+              <div class="form-group">
+                <label for="login-email">Email Address</label>
+                <div class="input-wrapper">
+                  <span class="material-icons-round input-icon">email</span>
+                  <input type="email" id="login-email" placeholder="doctor@clinic.com" required>
+                </div>
+              </div>
+              <div class="form-group">
+                <label for="login-password">Password</label>
+                <div class="input-wrapper">
+                  <span class="material-icons-round input-icon">lock</span>
+                  <input type="password" id="login-password" placeholder="Enter your password" required>
+                </div>
+              </div>
+              <button type="submit" class="btn btn-primary btn-full" id="login-btn">
+                <span>Sign In</span>
+                <span class="material-icons-round">arrow_forward</span>
+              </button>
+              <div class="auth-demo-hint">
+                <span class="material-icons-round">info</span>
+                <span>Demo: sarah@clinic.com / password123</span>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Main App -->
+    <div id="main-app" class="screen">
+      <!-- Sidebar -->
+      <aside class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+          <div class="sidebar-logo">
+            <span class="material-icons-round">local_hospital</span>
+            <span>MediBook</span>
+          </div>
+          <span class="badge-doctor">DOCTOR</span>
+        </div>
+        <nav class="sidebar-nav">
+          <a href="#" class="nav-item active" data-page="dashboard" onclick="navigateTo('dashboard')">
+            <span class="material-icons-round">dashboard</span>
+            <span>Dashboard</span>
+          </a>
+          <a href="#" class="nav-item" data-page="appointments" onclick="navigateTo('appointments')">
+            <span class="material-icons-round">calendar_today</span>
+            <span>Appointments</span>
+            <span class="nav-badge" id="pending-badge" style="display:none">0</span>
+          </a>
+          <a href="#" class="nav-item" data-page="schedule" onclick="navigateTo('schedule')">
+            <span class="material-icons-round">schedule</span>
+            <span>Schedule</span>
+          </a>
+          <a href="#" class="nav-item" data-page="patients" onclick="navigateTo('patients')">
+            <span class="material-icons-round">group</span>
+            <span>Patients</span>
+          </a>
+          <a href="#" class="nav-item" data-page="profile" onclick="navigateTo('profile')">
+            <span class="material-icons-round">person</span>
+            <span>Profile</span>
+          </a>
+        </nav>
+        <div class="sidebar-footer">
+          <button class="btn-logout" onclick="logout()">
+            <span class="material-icons-round">logout</span>
+            <span>Sign Out</span>
+          </button>
+        </div>
+      </aside>
+
+      <!-- Main Content -->
+      <main class="main-content">
+        <header class="topbar">
+          <button class="menu-toggle" onclick="toggleSidebar()">
+            <span class="material-icons-round">menu</span>
+          </button>
+          <div class="topbar-title">
+            <h2 id="topbar-page-title">Dashboard</h2>
+          </div>
+          <div class="topbar-actions">
+            <button class="notification-btn" onclick="toggleNotifications()" id="notif-btn">
+              <span class="material-icons-round">notifications</span>
+              <span class="notif-badge" id="notif-badge" style="display:none">0</span>
+            </button>
+            <div class="user-menu">
+              <div class="user-avatar" id="user-avatar">SM</div>
+              <div class="user-info">
+                <span class="user-name" id="user-name">Dr. Sarah Mitchell</span>
+                <span class="user-role" id="user-specialty">Cardiology</span>
+              </div>
+            </div>
+          </div>
+        </header>
+
+        <!-- Notification Panel -->
+        <div class="notification-panel" id="notification-panel">
+          <div class="notif-header">
+            <h3>Notifications</h3>
+            <button onclick="markAllRead()" class="btn-text">Mark all read</button>
+          </div>
+          <div class="notif-list" id="notif-list"></div>
+        </div>
+
+        <div class="page-container">
+          <!-- Dashboard Page -->
+          <div id="page-dashboard" class="page active">
+            <div class="page-header">
+              <div>
+                <h1 id="greeting">Good Evening, Dr. Sarah!</h1>
+                <p class="page-subtitle">Here's your practice overview for today</p>
+              </div>
+              <div class="header-date" id="header-date"></div>
+            </div>
+
+            <div class="stats-grid">
+              <div class="stat-card stat-card-blue">
+                <div class="stat-card-icon"><span class="material-icons-round">today</span></div>
+                <div class="stat-card-info">
+                  <span class="stat-card-value" id="stat-today">0</span>
+                  <span class="stat-card-label">Today's Appointments</span>
+                </div>
+              </div>
+              <div class="stat-card stat-card-amber">
+                <div class="stat-card-icon"><span class="material-icons-round">pending_actions</span></div>
+                <div class="stat-card-info">
+                  <span class="stat-card-value" id="stat-pending">0</span>
+                  <span class="stat-card-label">Pending Requests</span>
+                </div>
+              </div>
+              <div class="stat-card stat-card-green">
+                <div class="stat-card-icon"><span class="material-icons-round">task_alt</span></div>
+                <div class="stat-card-info">
+                  <span class="stat-card-value" id="stat-completed">0</span>
+                  <span class="stat-card-label">Total Completed</span>
+                </div>
+              </div>
+              <div class="stat-card stat-card-purple">
+                <div class="stat-card-icon"><span class="material-icons-round">payments</span></div>
+                <div class="stat-card-info">
+                  <span class="stat-card-value" id="stat-revenue">₹0</span>
+                  <span class="stat-card-label">Total Revenue</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="dashboard-grid">
+              <div class="card">
+                <div class="card-header">
+                  <h3><span class="material-icons-round">today</span> Today's Schedule</h3>
+                  <a href="#" class="btn-text" onclick="navigateTo('appointments')">View All</a>
+                </div>
+                <div class="card-body" id="today-schedule"></div>
+              </div>
+              <div class="card">
+                <div class="card-header">
+                  <h3><span class="material-icons-round">people</span> Recent Patients</h3>
+                  <a href="#" class="btn-text" onclick="navigateTo('patients')">View All</a>
+                </div>
+                <div class="card-body" id="recent-patients-list"></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Appointments Page -->
+          <div id="page-appointments" class="page">
+            <div class="page-header">
+              <div>
+                <h1>Appointments</h1>
+                <p class="page-subtitle">Manage your patient appointments</p>
+              </div>
+              <div class="date-picker-group">
+                <label>Filter by date:</label>
+                <input type="date" id="apt-date-filter" onchange="loadAppointments()">
+              </div>
+            </div>
+
+            <div class="appointment-tabs">
+              <button class="apt-tab active" onclick="filterAppointments('all', this)">All</button>
+              <button class="apt-tab" onclick="filterAppointments('pending', this)">
+                Pending <span class="tab-count" id="tab-pending-count"></span>
+              </button>
+              <button class="apt-tab" onclick="filterAppointments('confirmed', this)">Confirmed</button>
+              <button class="apt-tab" onclick="filterAppointments('completed', this)">Completed</button>
+              <button class="apt-tab" onclick="filterAppointments('cancelled', this)">Cancelled</button>
+            </div>
+
+            <div id="appointments-list"></div>
+          </div>
+
+          <!-- Schedule Page -->
+          <div id="page-schedule" class="page">
+            <div class="page-header">
+              <div>
+                <h1>Schedule Management</h1>
+                <p class="page-subtitle">Configure your availability and time slots</p>
+              </div>
+            </div>
+
+            <div class="schedule-section">
+              <div class="card">
+                <div class="card-header">
+                  <h3><span class="material-icons-round">event_available</span> Weekly Availability</h3>
+                </div>
+                <div class="card-body">
+                  <div class="availability-grid" id="availability-grid">
+                    <!-- Availability toggles rendered here -->
+                  </div>
+                </div>
+              </div>
+
+              <div class="card" style="margin-top: var(--space-lg)">
+                <div class="card-header">
+                  <h3><span class="material-icons-round">access_time</span> Consultation Settings</h3>
+                </div>
+                <div class="card-body">
+                  <form onsubmit="updateSettings(event)" class="settings-form">
+                    <div class="form-row">
+                      <div class="form-group">
+                        <label>Consultation Fee (₹)</label>
+                        <input type="number" id="setting-fee" min="0" step="50">
+                      </div>
+                      <div class="form-group">
+                        <label>Slot Duration (minutes)</label>
+                        <select id="setting-duration">
+                          <option value="15">15 minutes</option>
+                          <option value="20">20 minutes</option>
+                          <option value="30">30 minutes</option>
+                          <option value="45">45 minutes</option>
+                          <option value="60">60 minutes</option>
+                        </select>
+                      </div>
+                    </div>
+                    <button type="submit" class="btn btn-primary">
+                      <span class="material-icons-round">save</span>
+                      Save Settings
+                    </button>
+                  </form>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Patients Page -->
+          <div id="page-patients" class="page">
+            <div class="page-header">
+              <div>
+                <h1>My Patients</h1>
+                <p class="page-subtitle">View patients who have booked appointments with you</p>
+              </div>
+            </div>
+            <div id="patients-list"></div>
+          </div>
+
+          <!-- Profile Page -->
+          <div id="page-profile" class="page">
+            <div class="page-header">
+              <div>
+                <h1>My Profile</h1>
+                <p class="page-subtitle">Manage your professional profile</p>
+              </div>
+            </div>
+
+            <div class="profile-card">
+              <div class="profile-header-section">
+                <div class="profile-avatar-large" id="profile-avatar-large">SM</div>
+                <div class="profile-info-header">
+                  <h2 id="profile-name">Dr. Sarah Mitchell</h2>
+                  <p id="profile-specialty">Cardiology</p>
+                  <div class="profile-badges">
+                    <span class="profile-badge"><span class="material-icons-round">star</span> <span id="profile-rating">4.9</span></span>
+                    <span class="profile-badge"><span class="material-icons-round">reviews</span> <span id="profile-reviews">234</span> reviews</span>
+                    <span class="profile-badge"><span class="material-icons-round">work</span> <span id="profile-experience">15</span> years</span>
+                  </div>
+                </div>
+              </div>
+              <form onsubmit="updateProfile(event)" class="profile-form">
+                <div class="form-group">
+                  <label for="profile-edit-bio">Bio / About</label>
+                  <textarea id="profile-edit-bio" rows="4" placeholder="Tell patients about your expertise..."></textarea>
+                </div>
+                <div class="form-row">
+                  <div class="form-group">
+                    <label for="profile-edit-fee">Consultation Fee (₹)</label>
+                    <input type="number" id="profile-edit-fee" min="0" step="50">
+                  </div>
+                  <div class="form-group">
+                    <label for="profile-edit-duration">Slot Duration (min)</label>
+                    <select id="profile-edit-duration">
+                      <option value="15">15 minutes</option>
+                      <option value="20">20 minutes</option>
+                      <option value="30">30 minutes</option>
+                      <option value="45">45 minutes</option>
+                      <option value="60">60 minutes</option>
+                    </select>
+                  </div>
+                </div>
+                <button type="submit" class="btn btn-primary">
+                  <span class="material-icons-round">save</span>
+                  Save Changes
+                </button>
+              </form>
+            </div>
+          </div>
+        </div>
+      </main>
+    </div>
+
+    <!-- Appointment Detail Modal -->
+    <div class="modal-overlay" id="appointment-modal">
+      <div class="modal">
+        <div class="modal-header">
+          <h2>Appointment Details</h2>
+          <button class="modal-close" onclick="closeModal('appointment-modal')">
+            <span class="material-icons-round">close</span>
+          </button>
+        </div>
+        <div class="modal-body" id="appointment-modal-body"></div>
+      </div>
+    </div>
+
+    <!-- Patient Medical History Modal -->
+    <div class="modal-overlay" id="patient-history-modal">
+      <div class="modal" style="max-width: 720px">
+        <div class="modal-header">
+          <h2>Patient Medical History</h2>
+          <button class="modal-close" onclick="closeModal('patient-history-modal')">
+            <span class="material-icons-round">close</span>
+          </button>
+        </div>
+        <div class="modal-body" id="patient-history-modal-body"></div>
+      </div>
+    </div>
+
+    <!-- Prescription Print / View Modal -->
+    <div class="modal-overlay" id="prescription-modal">
+      <div class="modal" style="max-width: 680px">
+        <div class="modal-header">
+          <h2>Medical Prescription</h2>
+          <div style="display:flex;gap:var(--space-sm);align-items:center">
+            <button class="btn btn-sm btn-primary" onclick="printPrescriptionDoc()">
+              <span class="material-icons-round">print</span> Print Rx
+            </button>
+            <button class="modal-close" onclick="closeModal('prescription-modal')">
+              <span class="material-icons-round">close</span>
+            </button>
+          </div>
+        </div>
+        <div class="modal-body" id="prescription-modal-body"></div>
+      </div>
+    </div>
+
+    <!-- Virtual Teleconsultation Video Room Modal -->
+    <div class="modal-overlay" id="video-modal">
+      <div class="modal" style="max-width: 860px; max-height: 92vh; background: #0b0f19;">
+        <div class="modal-header" style="background:#111827; border-color: rgba(255,255,255,0.08)">
+          <div style="display:flex;align-items:center;gap:var(--space-sm)">
+            <span class="live-dot" style="width:10px;height:10px;border-radius:50%;background:#ef4444;box-shadow:0 0 8px #ef4444;animation:pulse 1.5s infinite"></span>
+            <h2>Virtual Consultation Room</h2>
+            <span class="badge-doctor" id="video-call-timer">00:00</span>
+          </div>
+          <button class="modal-close" onclick="endVideoCall()">
+            <span class="material-icons-round">close</span>
+          </button>
+        </div>
+        <div class="modal-body" id="video-modal-body" style="padding:var(--space-lg)"></div>
+      </div>
+    </div>
+
+    <!-- Toast Container -->
+    <div class="toast-container" id="toast-container"></div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
