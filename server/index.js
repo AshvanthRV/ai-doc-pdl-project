@@ -168,11 +168,15 @@ app.get('/api/dashboard/patient', authenticateToken, (req, res) => {
   }
 });
 
-// Start server
-app.listen(PORT, () => {
-  console.log(`\n🏥 Doctor Consultation API Server`);
-  console.log(`   Running on: http://localhost:${PORT}`);
-  console.log(`   Patient Portal: http://localhost:3001`);
-  console.log(`   Doctor Dashboard: http://localhost:3002`);
-  console.log(`   API Health: http://localhost:${PORT}/api/health\n`);
-});
+// Start server locally; Vercel will import the app directly.
+if (require.main === module) {
+  app.listen(PORT, () => {
+    console.log(`\n🏥 Doctor Consultation API Server`);
+    console.log(`   Running on: http://localhost:${PORT}`);
+    console.log(`   Patient Portal: http://localhost:3001`);
+    console.log(`   Doctor Dashboard: http://localhost:3002`);
+    console.log(`   API Health: http://localhost:${PORT}/api/health\n`);
+  });
+}
+
+module.exports = app;
