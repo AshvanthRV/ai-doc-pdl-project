@@ -5,8 +5,8 @@
   "main": "server/index.js",
   "scripts": {
     "start:server": "node server/index.js",
-    "start:patient": "npx -y http-server patient-portal -p 3001 -c-1 --cors",
-    "start:doctor": "npx -y http-server doctor-dashboard -p 3002 -c-1 --cors",
+    "start:patient": "node server/static.js patient-portal 3001",
+    "start:doctor": "node server/static.js doctor-dashboard 3002",
     "dev": "concurrently \"npm run start:server\" \"npm run start:patient\" \"npm run start:doctor\"",
     "seed": "node server/seed.js"
   },

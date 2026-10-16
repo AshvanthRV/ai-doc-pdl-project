@@ -1,12 +1,12 @@
 const express = require('express');
 const router = express.Router();
 const { getDb } = require('../db');
-const { authenticateToken } = require('../auth');
+const { authenticateToken, authorizeRole } = require('../auth');
 
 // Create appointment (patient)
-router.post('/', authenticateToken, (req, res) => {
+router.post('/', authenticateToken, authorizeRole('patient'), (req, res) => {
   try {
-    const { doctor_id, appointment_date, start_time, end_time, consultation_type, reason } = req.body;
+    const { doctor_id, appointment_date, start_time, end_time, consultation_type, reason, patient_condition, ai_diagnosis, urgency_level, symptoms } = req.body;
 
     if (!doctor_id || !appointment_date || !start_time || !end_time) {
       return res.status(400).json({ error: 'Doctor ID, date, start time, and end time are required' });
@@ -24,17 +24,31 @@ router.post('/', authenticateToken, (req, res) => {
       return res.status(409).json({ error: 'This time slot is already booked' });
     }
 
+    const aiDiagnosisStr = typeof ai_diagnosis === 'object' ? JSON.stringify(ai_diagnosis) : (ai_diagnosis || '');
+    const symptomsStr = Array.isArray(symptoms) ? symptoms.join(', ') : (symptoms || '');
+
     const result = db.prepare(`
-      INSERT INTO appointments (patient_id, doctor_id, appointment_date, start_time, end_time, consultation_type, reason)
-      VALUES (?, ?, ?, ?, ?, ?, ?)
-    `).run(req.user.id, doctor_id, appointment_date, start_time, end_time, consultation_type || 'in-person', reason || '');
+      INSERT INTO appointments (
+        patient_id, doctor_id, appointment_date, start_time, end_time,
+        consultation_type, reason, patient_condition, ai_diagnosis, urgency_level, symptoms
+      )
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `).run(
+      req.user.id, doctor_id, appointment_date, start_time, end_time,
+      consultation_type || 'in-person', reason || '',
+      patient_condition || '', aiDiagnosisStr, urgency_level || 'moderate', symptomsStr
+    );
 
     // Create notification for doctor
     const patient = db.prepare('SELECT name FROM patients WHERE id = ?').get(req.user.id);
+    const notifMsg = patient_condition
+      ? `${patient.name} requested consultation for: ${patient_condition} (${(urgency_level || 'moderate').toUpperCase()} urgency) on ${appointment_date} at ${start_time}.`
+      : `${patient.name} has requested an appointment on ${appointment_date} at ${start_time}.`;
+
     db.prepare(`
       INSERT INTO notifications (user_id, user_type, title, message, type)
       VALUES (?, 'doctor', 'New Appointment Request', ?, 'info')
-    `).run(doctor_id, `${patient.name} has requested an appointment on ${appointment_date} at ${start_time}.`);
+    `).run(doctor_id, notifMsg);
 
     const appointment = db.prepare(`
       SELECT a.*, d.name as doctor_name, d.specialty as doctor_specialty, p.name as patient_name
@@ -51,7 +65,7 @@ router.post('/', authenticateToken, (req, res) => {
 });
 
 // Get appointments for patient
-router.get('/patient', authenticateToken, (req, res) => {
+router.get('/patient', authenticateToken, authorizeRole('patient'), (req, res) => {
   try {
     const db = getDb();
     const { status, upcoming } = req.query;
@@ -84,7 +98,7 @@ router.get('/patient', authenticateToken, (req, res) => {
 });
 
 // Get appointments for doctor
-router.get('/doctor', authenticateToken, (req, res) => {
+router.get('/doctor', authenticateToken, authorizeRole('doctor'), (req, res) => {
   try {
     const db = getDb();
     const { status, date, upcoming } = req.query;
@@ -122,7 +136,7 @@ router.get('/doctor', authenticateToken, (req, res) => {
 });
 
 // Get full appointment & clinical history for a specific patient with this doctor
-router.get('/doctor/patient/:patientId', authenticateToken, (req, res) => {
+router.get('/doctor/patient/:patientId', authenticateToken, authorizeRole('doctor'), (req, res) => {
   try {
     const db = getDb();
     const appointments = db.prepare(`
@@ -144,13 +158,17 @@ router.get('/doctor/patient/:patientId', authenticateToken, (req, res) => {
 });
 
 // Update appointment status (doctor)
-router.put('/:id/status', authenticateToken, (req, res) => {
+router.put('/:id/status', authenticateToken, authorizeRole('doctor'), (req, res) => {
   try {
     const { status, notes, prescription } = req.body;
+    const validStatuses = ['pending', 'confirmed', 'completed', 'cancelled', 'no-show'];
+    if (!validStatuses.includes(status)) {
+      return res.status(400).json({ error: 'A valid appointment status is required' });
+    }
     const db = getDb();
 
     const appointment = db.prepare('SELECT * FROM appointments WHERE id = ?').get(req.params.id);
-    if (!appointment) {
+    if (!appointment || appointment.doctor_id !== req.user.id) {
       return res.status(404).json({ error: 'Appointment not found' });
     }
 
@@ -207,7 +225,7 @@ router.put('/:id/status', authenticateToken, (req, res) => {
 });
 
 // Cancel appointment (patient)
-router.put('/:id/cancel', authenticateToken, (req, res) => {
+router.put('/:id/cancel', authenticateToken, authorizeRole('patient'), (req, res) => {
   try {
     const db = getDb();
     const appointment = db.prepare('SELECT * FROM appointments WHERE id = ? AND patient_id = ?').get(req.params.id, req.user.id);
@@ -236,7 +254,7 @@ router.put('/:id/cancel', authenticateToken, (req, res) => {
 });
 
 // Add review
-router.post('/:id/review', authenticateToken, (req, res) => {
+router.post('/:id/review', authenticateToken, authorizeRole('patient'), (req, res) => {
   try {
     const { rating, comment } = req.body;
     const db = getDb();

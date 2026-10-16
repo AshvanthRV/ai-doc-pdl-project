@@ -129,6 +129,10 @@
             <h2 id="topbar-page-title">Dashboard</h2>
           </div>
           <div class="topbar-actions">
+            <button class="btn btn-sm btn-outline" onclick="openApiKeyModal()" style="display:flex;align-items:center;gap:6px;border-color:rgba(99,102,241,0.4);background:rgba(99,102,241,0.1);color:#c7d2fe;font-size:0.8rem;padding:6px 12px;border-radius:20px;cursor:pointer">
+              <span class="material-icons-round" style="font-size:1rem;color:#818cf8">auto_awesome</span>
+              <span>Gemini Clinical AI</span>
+            </button>
             <button class="notification-btn" onclick="toggleNotifications()" id="notif-btn">
               <span class="material-icons-round">notifications</span>
               <span class="notif-badge" id="notif-badge" style="display:none">0</span>
@@ -414,6 +418,42 @@
           </button>
         </div>
         <div class="modal-body" id="video-modal-body" style="padding:var(--space-lg)"></div>
+      </div>
+    </div>
+
+    <!-- Gemini API Key Settings Modal -->
+    <div class="modal-overlay" id="apikey-modal">
+      <div class="modal" style="max-width: 520px">
+        <div class="modal-header">
+          <h2 style="display:flex;align-items:center;gap:8px">
+            <span class="material-icons-round" style="color:#818cf8">vpn_key</span>
+            <span>Gemini AI Configuration</span>
+          </h2>
+          <button class="modal-close" onclick="closeModal('apikey-modal')">
+            <span class="material-icons-round">close</span>
+          </button>
+        </div>
+        <div class="modal-body">
+          <p style="font-size:0.9rem;color:var(--text-secondary);margin-bottom:var(--space-md)">
+            Gemini AI powers patient condition triage and doctor decision support. A key entered here stays in memory until the API server restarts; set GEMINI_API_KEY in the server environment to keep it across restarts.
+          </p>
+          <div class="form-group">
+            <label for="input-gemini-key">Google Gemini API Key</label>
+            <div class="input-wrapper">
+              <span class="material-icons-round input-icon">key</span>
+              <input type="password" id="input-gemini-key" placeholder="Enter Gemini API Key (AIzaSy... / AQ...)">
+            </div>
+            <span style="font-size:0.75rem;color:var(--text-secondary);margin-top:4px;display:block" id="apikey-status-label">
+              Checking server configuration…
+            </span>
+          </div>
+          <div style="display:flex;justify-content:flex-end;gap:var(--space-sm);margin-top:var(--space-lg)">
+            <button type="button" class="btn btn-secondary" onclick="closeModal('apikey-modal')">Close</button>
+            <button type="button" class="btn btn-primary" onclick="saveGeminiApiKey()">
+              <span class="material-icons-round">save</span> Apply Key
+            </button>
+          </div>
+        </div>
       </div>
     </div>
 

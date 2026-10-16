@@ -511,7 +511,25 @@ function renderAppointments() {
           </div>
         </div>
 
-        ${apt.reason ? `
+        ${apt.patient_condition ? `
+          <div class="apt-ai-condition-banner">
+            <div class="apt-ai-condition-info">
+              <span class="material-icons-round" style="color:var(--primary-light);font-size:1.4rem">psychology</span>
+              <div>
+                <div style="font-size:0.75rem;color:var(--text-tertiary);text-transform:uppercase;font-weight:700">Patient Condition (Gemini AI Triage)</div>
+                <strong style="color:var(--text-primary);font-size:0.95rem">${escapeHtml(apt.patient_condition)}</strong>
+                <span class="urgency-pill urgency-${apt.urgency_level || 'moderate'}">${(apt.urgency_level || 'moderate').toUpperCase()}</span>
+                ${apt.symptoms ? `<span style="font-size:0.8rem;color:var(--text-secondary);display:block;margin-top:2px">Symptoms: ${escapeHtml(apt.symptoms)}</span>` : ''}
+              </div>
+            </div>
+            <button class="btn btn-sm btn-outline" onclick="openAppointmentModal(${apt.id})" style="border-color:rgba(99,102,241,0.3)">
+              <span class="material-icons-round" style="font-size:0.95rem;color:var(--primary-light)">medical_information</span>
+              <span>Review Condition</span>
+            </button>
+          </div>
+        ` : ''}
+
+        ${apt.reason && !apt.patient_condition ? `
           <div class="apt-card-reason">
             <strong>Reason for visit:</strong> ${escapeHtml(apt.reason)}
           </div>
@@ -625,7 +643,77 @@ function renderAppointmentModal(apt) {
   const modalBody = document.getElementById('appointment-modal-body');
   if (!modalBody) return;
 
+  let aiDiag = null;
+  if (apt.ai_diagnosis) {
+    try {
+      aiDiag = typeof apt.ai_diagnosis === 'object' ? apt.ai_diagnosis : JSON.parse(apt.ai_diagnosis);
+    } catch (e) {
+      aiDiag = null;
+    }
+  }
+
+  const conditionTitle = apt.patient_condition || aiDiag?.condition_name || apt.reason || 'General Health Consultation';
+  const urgency = (apt.urgency_level || aiDiag?.urgency_level || 'moderate').toLowerCase();
+
   modalBody.innerHTML = `
+    <!-- Patient Condition & Gemini AI Assessment -->
+    <div class="doctor-condition-card">
+      <div class="doctor-condition-card-header">
+        <div class="doctor-condition-badge">
+          <span class="material-icons-round" style="color:var(--primary-light)">psychology</span>
+          <span>Patient Condition (Gemini AI Clinical Triage)</span>
+        </div>
+        <span class="urgency-pill urgency-${urgency}">URGENCY: ${urgency.toUpperCase()}</span>
+      </div>
+
+      <div class="doctor-condition-grid">
+        <div class="doctor-condition-item">
+          <label>Identified Condition</label>
+          <p style="color:var(--primary-light);font-size:1.05rem">${escapeHtml(conditionTitle)}</p>
+        </div>
+        <div class="doctor-condition-item">
+          <label>Reported Symptoms</label>
+          <div class="symptoms-chip-row">
+            ${(aiDiag?.symptoms || (apt.symptoms ? apt.symptoms.split(',') : [])).map(s => `<span class="symptom-doctor-chip">${escapeHtml(s.trim())}</span>`).join('') || '<p style="font-size:0.85rem;color:var(--text-secondary)">None specified</p>'}
+          </div>
+        </div>
+      </div>
+
+      ${aiDiag?.clinical_assessment ? `
+        <div class="doctor-ai-brief-box" style="margin-bottom:var(--space-md)">
+          <div style="font-size:0.8rem;text-transform:uppercase;color:var(--primary-light);font-weight:700;margin-bottom:4px">Gemini Clinical Assessment</div>
+          <p>${escapeHtml(aiDiag.clinical_assessment)}</p>
+        </div>
+      ` : ''}
+
+      ${aiDiag?.clinical_doctor_notes ? `
+        <div class="doctor-ai-brief-box" style="background:rgba(99,102,241,0.08);border-color:rgba(99,102,241,0.25);margin-bottom:var(--space-md)">
+          <div style="font-size:0.8rem;text-transform:uppercase;color:var(--accent);font-weight:700;margin-bottom:4px">Clinical Exam Focus & Differential Pointers</div>
+          <p>${escapeHtml(aiDiag.clinical_doctor_notes)}</p>
+        </div>
+      ` : ''}
+
+      ${aiDiag?.questions_to_ask_doctor && aiDiag.questions_to_ask_doctor.length ? `
+        <div style="font-size:0.84rem;color:var(--text-secondary);margin-bottom:var(--space-md)">
+          <strong style="color:var(--text-primary);display:block;margin-bottom:4px">Patient was prepared with these questions:</strong>
+          <ul style="padding-left:18px">
+            ${aiDiag.questions_to_ask_doctor.map(q => `<li>${escapeHtml(q)}</li>`).join('')}
+          </ul>
+        </div>
+      ` : ''}
+
+      <!-- Live Clinical AI Assistant Button for Doctor -->
+      <div style="display:flex;justify-content:space-between;align-items:center;padding-top:var(--space-sm);border-top:1px solid rgba(255,255,255,0.06);flex-wrap:wrap;gap:8px">
+        <span style="font-size:0.8rem;color:var(--text-tertiary)">Need differential diagnosis or clinical investigation suggestions?</span>
+        <button type="button" class="btn btn-sm btn-outline" id="btn-ai-consult-${apt.id}" onclick="getDoctorAIInsights(${apt.id})" style="border-color:rgba(99,102,241,0.4);background:rgba(99,102,241,0.1)">
+          <span class="material-icons-round" style="color:#818cf8;font-size:1rem">auto_awesome</span>
+          <span>Ask Gemini Clinical Assistant</span>
+        </button>
+      </div>
+
+      <div id="doctor-ai-insights-box-${apt.id}" style="display:none;margin-top:var(--space-md)"></div>
+    </div>
+
     <div class="detail-section">
       <h3><span class="material-icons-round">person</span> Patient Information</h3>
       <div class="detail-grid">
@@ -1229,6 +1317,46 @@ let callSeconds = 0;
 let callMediaStream = null;
 let callAudioMuted = false;
 let callVideoMuted = false;
+
+async function getDoctorAIInsights(appointmentId) {
+  const button = document.getElementById(`btn-ai-consult-${appointmentId}`);
+  const box = document.getElementById(`doctor-ai-insights-box-${appointmentId}`);
+  if (!button || !box) return;
+
+  button.disabled = true;
+  button.innerHTML = '<span class="spinner" style="width:16px;height:16px;border-width:2px"></span><span>Preparing insights...</span>';
+  box.style.display = 'block';
+  box.innerHTML = '<p style="color:var(--text-secondary)">Generating clinical decision support...</p>';
+
+  try {
+    const result = await apiFetch('/ai/doctor-insights', {
+      method: 'POST',
+      body: JSON.stringify({ appointmentId })
+    });
+    const insights = result.insights || {};
+    const list = items => Array.isArray(items) && items.length
+      ? `<ul>${items.map(item => `<li>${escapeHtml(item)}</li>`).join('')}</ul>`
+      : '<p>None provided.</p>';
+
+    box.innerHTML = `
+      <div class="doctor-ai-brief-box">
+        <strong>Clinical decision support — verify independently</strong>
+        <p style="margin-top:8px">${escapeHtml(insights.condition_summary || 'No summary available.')}</p>
+        <div class="doctor-condition-grid" style="margin-top:12px">
+          <div><strong>Differential diagnoses</strong>${list(insights.differential_diagnoses)}</div>
+          <div><strong>Examination focus</strong>${list(insights.examination_focus)}</div>
+          <div><strong>Suggested investigations</strong>${list(insights.recommended_investigations)}</div>
+          <div><strong>Interview questions</strong>${list(insights.clinical_interview_questions)}</div>
+        </div>
+        <p><strong>Treatment considerations:</strong> ${escapeHtml(insights.treatment_guidelines || 'Not provided.')}</p>
+      </div>`;
+  } catch (err) {
+    box.innerHTML = `<p style="color:var(--error)">${escapeHtml(err.message || 'Unable to generate insights.')}</p>`;
+  } finally {
+    button.disabled = false;
+    button.innerHTML = '<span class="material-icons-round" style="color:#818cf8;font-size:1rem">auto_awesome</span><span>Ask Gemini Clinical Assistant</span>';
+  }
+}
 
 function startVideoCall(appointmentId, role = 'doctor') {
   const apt = state.appointments.find(a => a.id === appointmentId);

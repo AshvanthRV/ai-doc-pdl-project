@@ -8,14 +8,14 @@ let db;
 function getDb() {
   if (!db) {
     db = new DatabaseSync(DB_PATH);
-    
+
     // Add compatibility helpers for better-sqlite3 style API
-    db.pragma = function(pragmaSql) {
+    db.pragma = function (pragmaSql) {
       return db.exec(`PRAGMA ${pragmaSql}`);
     };
 
-    db.transaction = function(fn) {
-      return function(...args) {
+    db.transaction = function (fn) {
+      return function (...args) {
         db.exec('BEGIN');
         try {
           const result = fn(...args);
@@ -90,6 +90,10 @@ function initializeDatabase() {
       status TEXT DEFAULT 'pending' CHECK(status IN ('pending', 'confirmed', 'completed', 'cancelled', 'no-show')),
       consultation_type TEXT DEFAULT 'in-person' CHECK(consultation_type IN ('in-person', 'video', 'phone')),
       reason TEXT,
+      patient_condition TEXT,
+      ai_diagnosis TEXT,
+      urgency_level TEXT DEFAULT 'moderate',
+      symptoms TEXT,
       notes TEXT,
       prescription TEXT,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
@@ -122,6 +126,22 @@ function initializeDatabase() {
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP
     );
   `);
+
+  // Run migrations for existing database
+  const columnsToAdd = [
+    { name: 'patient_condition', type: 'TEXT' },
+    { name: 'ai_diagnosis', type: 'TEXT' },
+    { name: 'urgency_level', type: 'TEXT DEFAULT "moderate"' },
+    { name: 'symptoms', type: 'TEXT' }
+  ];
+
+  for (const col of columnsToAdd) {
+    try {
+      db.exec(`ALTER TABLE appointments ADD COLUMN ${col.name} ${col.type}`);
+    } catch (e) {
+      // Column already exists or error handled
+    }
+  }
 }
 
 module.exports = { getDb };

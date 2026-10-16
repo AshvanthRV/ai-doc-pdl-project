@@ -145,6 +145,11 @@
             <span class="material-icons-round">dashboard</span>
             <span>Dashboard</span>
           </a>
+          <a href="#" class="nav-item" data-page="ai-triage" onclick="navigateTo('ai-triage')">
+            <span class="material-icons-round" style="color:#818cf8">psychology</span>
+            <span>Gemini AI Triage</span>
+            <span class="badge-gemini" style="margin-left:auto;font-size:0.65rem;padding:2px 6px">AI</span>
+          </a>
           <a href="#" class="nav-item" data-page="doctors" onclick="navigateTo('doctors')">
             <span class="material-icons-round">medical_services</span>
             <span>Find Doctors</span>
@@ -178,6 +183,10 @@
             <input type="text" placeholder="Search doctors, specialties..." id="global-search" onkeyup="handleGlobalSearch(event)">
           </div>
           <div class="topbar-actions">
+            <button class="btn btn-sm btn-outline" onclick="navigateTo('ai-triage')" style="display:flex;align-items:center;gap:6px;border-color:rgba(99,102,241,0.4);background:rgba(99,102,241,0.1);color:#c7d2fe;font-size:0.8rem;padding:6px 12px;border-radius:20px;cursor:pointer">
+              <span class="material-icons-round" style="font-size:1rem;color:#818cf8">auto_awesome</span>
+              <span>Symptom Triage</span>
+            </button>
             <button class="notification-btn" onclick="toggleNotifications()" id="notif-btn">
               <span class="material-icons-round">notifications</span>
               <span class="notif-badge" id="notif-badge" style="display:none">0</span>
@@ -209,6 +218,28 @@
               <div>
                 <h1 id="greeting">Good Evening, John!</h1>
                 <p class="page-subtitle">Here's your health dashboard overview</p>
+              </div>
+            </div>
+
+            <!-- Gemini AI Triage Quick Banner -->
+            <div class="ai-hero-banner">
+              <div class="ai-hero-content">
+                <h2>
+                  <span class="material-icons-round" style="color:#818cf8;font-size:1.8rem">psychology</span>
+                  <span>Feeling Unwell? Gemini AI Medical Triage</span>
+                  <span class="badge-gemini">Powered by Gemini</span>
+                </h2>
+                <p>Describe your symptoms in natural language. Our clinical Gemini AI will recognize your condition, evaluate urgency, and match you with the right specialist doctors for immediate booking.</p>
+                <div style="margin-top:var(--space-md);display:flex;gap:var(--space-sm);flex-wrap:wrap">
+                  <button class="btn btn-primary" onclick="navigateTo('ai-triage')">
+                    <span class="material-icons-round">auto_awesome</span>
+                    Start AI Medical Assessment
+                  </button>
+                  <button class="btn btn-secondary" onclick="navigateTo('doctors')">
+                    <span class="material-icons-round">medical_services</span>
+                    Browse All Specialists
+                  </button>
+                </div>
               </div>
             </div>
 
@@ -262,6 +293,77 @@
                   <!-- Recent doctors rendered here -->
                 </div>
               </div>
+            </div>
+          </div>
+
+          <!-- Gemini AI Triage Page -->
+          <div id="page-ai-triage" class="page">
+            <div class="page-header">
+              <div>
+                <h1 style="display:flex;align-items:center;gap:10px">
+                  <span class="material-icons-round" style="color:#818cf8;font-size:2rem">psychology</span>
+                  <span>Gemini AI Medical Triage</span>
+                  <span class="badge-gemini">Clinical AI</span>
+                </h1>
+                <p class="page-subtitle">Enter your symptoms in detail. Gemini AI will analyze your condition, evaluate severity, and suggest the most suitable doctors for appointment booking.</p>
+              </div>
+            </div>
+
+            <!-- Query Input Card -->
+            <div class="ai-query-box">
+              <label style="font-weight:600;font-size:0.95rem;display:flex;align-items:center;gap:6px;margin-bottom:8px">
+                <span class="material-icons-round" style="color:var(--primary-light)">medical_information</span>
+                <span>Describe your symptoms or medical concern:</span>
+              </label>
+
+              <!-- Quick chips -->
+              <div class="symptom-chips">
+                <button type="button" class="symptom-chip" onclick="applySymptomPrompt('I have had a throbbing one-sided headache with nausea and light sensitivity for the past 2 days.')">
+                  <span class="material-icons-round">bolt</span> Migraine & light sensitivity
+                </button>
+                <button type="button" class="symptom-chip" onclick="applySymptomPrompt('I experience sharp chest pressure when climbing stairs or walking fast, along with mild shortness of breath.')">
+                  <span class="material-icons-round">favorite</span> Chest pressure on exertion
+                </button>
+                <button type="button" class="symptom-chip" onclick="applySymptomPrompt('Red, extremely itchy rash on both forearms with small blisters that appeared 3 days ago.')">
+                  <span class="material-icons-round">coronavirus</span> Itchy skin rash & blisters
+                </button>
+                <button type="button" class="symptom-chip" onclick="applySymptomPrompt('Persistent dry cough for 2 weeks, low-grade fever in the evenings, and throat tickling.')">
+                  <span class="material-icons-round">masks</span> Dry cough & mild fever
+                </button>
+                <button type="button" class="symptom-chip" onclick="applySymptomPrompt('Severe knee pain and stiffness especially after morning wakeup and difficulty bearing weight.')">
+                  <span class="material-icons-round">accessibility_new</span> Knee pain & joint stiffness
+                </button>
+              </div>
+
+              <textarea id="ai-symptom-input" placeholder="Type your symptoms here... (e.g. Where does it hurt? When did it start? What makes it better or worse? Any other symptoms like fever, nausea, or dizziness?)" rows="4"></textarea>
+
+              <div class="ai-action-bar">
+                <div class="ai-disclaimer-note">
+                  <span class="material-icons-round" style="font-size:1rem;color:var(--warning)">info</span>
+                  <span>AI triage provides clinical guidance and specialist suggestions, not an official medical diagnosis.</span>
+                </div>
+                <div style="display:flex;gap:var(--space-sm)">
+                  <button type="button" class="btn btn-secondary" onclick="clearAITriage()">
+                    <span class="material-icons-round">refresh</span> Clear
+                  </button>
+                  <button type="button" class="btn btn-primary" id="btn-run-diagnosis" onclick="runAITriage()">
+                    <span class="material-icons-round">auto_awesome</span>
+                    <span>Analyze with Gemini AI</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Loading Indicator -->
+            <div id="ai-loading" style="display:none;padding:var(--space-2xl) var(--space-lg);text-align:center">
+              <div class="spinner" style="width:48px;height:48px;border-width:4px;margin:0 auto var(--space-md)"></div>
+              <h3 style="color:#c7d2fe">Gemini AI is analyzing your medical query...</h3>
+              <p style="color:var(--text-secondary);font-size:0.9rem">Reviewing clinical symptoms, evaluating severity, and matching top hospital specialists.</p>
+            </div>
+
+            <!-- Diagnosis Result Section -->
+            <div id="ai-diagnosis-result" style="display:none" class="diagnosis-container">
+              <!-- Rendered dynamically by app.js -->
             </div>
           </div>
 

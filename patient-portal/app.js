@@ -184,6 +184,7 @@ function navigateTo(page) {
   // Load page data
   switch (page) {
     case 'dashboard': loadDashboard(); break;
+    case 'ai-triage': initAITriagePage(); break;
     case 'doctors': loadDoctors(); break;
     case 'appointments': loadAppointments(); break;
     case 'profile': loadProfile(); break;
@@ -434,7 +435,8 @@ async function viewDoctor(id) {
 // Booking
 // ========================================
 
-async function openBooking(doctorId) {
+async function openBooking(doctorId, prefilledTriage = null) {
+  state.attachedTriage = prefilledTriage;
   const doctor = state.doctors.find(d => d.id === doctorId) || await apiFetch(`/doctors/${doctorId}`);
   state.selectedDoctor = doctor;
   state.selectedSlot = null;
@@ -444,6 +446,10 @@ async function openBooking(doctorId) {
   const tomorrow = new Date();
   tomorrow.setDate(tomorrow.getDate() + 1);
   const minDate = tomorrow.toISOString().split('T')[0];
+
+  const defaultReason = state.attachedTriage
+    ? `Recognized Condition: ${state.attachedTriage.condition_name}. Symptoms: ${(state.attachedTriage.symptoms || []).join(', ')}`
+    : '';
 
   const body = document.getElementById('booking-modal-body');
   body.innerHTML = `
@@ -455,6 +461,19 @@ async function openBooking(doctorId) {
         <div class="booking-fee">₹${doctor.consultation_fee}</div>
       </div>
     </div>
+
+    ${state.attachedTriage ? `
+      <div class="booking-ai-tag">
+        <span class="material-icons-round" style="color:var(--primary-light);font-size:1.5rem">psychology</span>
+        <div style="flex:1">
+          <strong style="color:var(--text-primary)">Gemini AI Diagnosis Attached:</strong>
+          <span style="font-weight:600;color:var(--primary-light)">${escapeHtml(state.attachedTriage.condition_name)}</span>
+          <span class="urgency-pill urgency-${state.attachedTriage.urgency_level || 'moderate'}">${(state.attachedTriage.urgency_level || 'moderate').toUpperCase()}</span>
+          <p style="font-size:0.75rem;color:var(--text-secondary);margin-top:2px">The doctor will receive and review this clinical condition assessment during your consultation.</p>
+        </div>
+        <button type="button" class="btn-text" onclick="detachAITriage()" style="color:var(--text-tertiary);font-size:0.75rem">Detach</button>
+      </div>
+    ` : ''}
 
     <form class="booking-form" onsubmit="submitBooking(event)">
       <div class="form-group">
@@ -476,14 +495,14 @@ async function openBooking(doctorId) {
         <label>Consultation Type</label>
         <select id="booking-type" required>
           <option value="in-person">In-Person Visit</option>
-          <option value="video">Video Call</option>
+          <option value="video">Video Call (Teleconsultation)</option>
           <option value="phone">Phone Call</option>
         </select>
       </div>
 
       <div class="form-group">
-        <label>Reason for Visit</label>
-        <textarea id="booking-reason" placeholder="Describe your symptoms or reason for consultation..." rows="3"></textarea>
+        <label>Reason for Visit / Condition Description</label>
+        <textarea id="booking-reason" placeholder="Describe your symptoms or reason for consultation..." rows="3">${escapeHtml(defaultReason)}</textarea>
       </div>
 
       <button type="submit" class="btn btn-primary btn-full" id="booking-submit-btn">
@@ -494,6 +513,12 @@ async function openBooking(doctorId) {
   `;
 
   openModal('booking-modal');
+}
+
+function detachAITriage() {
+  state.attachedTriage = null;
+  const tag = document.querySelector('.booking-ai-tag');
+  if (tag) tag.remove();
 }
 
 async function loadSlots(doctorId, date) {
@@ -571,19 +596,30 @@ async function submitBooking(e) {
   btn.innerHTML = '<span class="spinner" style="width:20px;height:20px;border-width:2px"></span><span>Booking...</span>';
 
   try {
+    const payload = {
+      doctor_id: state.selectedDoctor.id,
+      appointment_date: state.selectedDate,
+      start_time: state.selectedSlot.start_time,
+      end_time: state.selectedSlot.end_time,
+      consultation_type: document.getElementById('booking-type').value,
+      reason: document.getElementById('booking-reason').value
+    };
+
+    if (state.attachedTriage) {
+      payload.patient_condition = state.attachedTriage.condition_name || '';
+      payload.ai_diagnosis = state.attachedTriage;
+      payload.urgency_level = state.attachedTriage.urgency_level || 'moderate';
+      payload.symptoms = state.attachedTriage.symptoms || [];
+    }
+
     await apiFetch('/appointments', {
       method: 'POST',
-      body: JSON.stringify({
-        doctor_id: state.selectedDoctor.id,
-        appointment_date: state.selectedDate,
-        start_time: state.selectedSlot.start_time,
-        end_time: state.selectedSlot.end_time,
-        consultation_type: document.getElementById('booking-type').value,
-        reason: document.getElementById('booking-reason').value
-      })
+      body: JSON.stringify(payload)
     });
 
-    showToast('Appointment booked successfully!', 'success');
+    state.attachedTriage = null;
+
+    showToast('Appointment booked successfully! Condition report shared with doctor.', 'success');
     closeModal('booking-modal');
 
     // Refresh current page
@@ -1261,5 +1297,236 @@ function endVideoCall() {
   }
   closeModal('video-modal');
   showToast('Consultation call ended', 'info');
+}
+
+// ========================================
+// Gemini AI Medical Diagnosis & Triage
+// ========================================
+
+let currentDiagnosisData = null;
+
+function initAITriagePage() {
+  // Focus symptom input if empty
+  const input = document.getElementById('ai-symptom-input');
+  if (input && !input.value.trim()) {
+    input.focus();
+  }
+}
+
+function applySymptomPrompt(text) {
+  const input = document.getElementById('ai-symptom-input');
+  if (input) {
+    input.value = text;
+    input.focus();
+    showToast('Sample symptoms loaded! Click "Analyze with Gemini AI"', 'info');
+  }
+}
+
+function clearAITriage() {
+  const input = document.getElementById('ai-symptom-input');
+  if (input) input.value = '';
+  const resultContainer = document.getElementById('ai-diagnosis-result');
+  if (resultContainer) {
+    resultContainer.style.display = 'none';
+    resultContainer.innerHTML = '';
+  }
+  currentDiagnosisData = null;
+}
+
+async function runAITriage() {
+  const input = document.getElementById('ai-symptom-input');
+  const query = input ? input.value.trim() : '';
+
+  if (!query) {
+    showToast('Please enter your symptoms or medical concern first', 'warning');
+    return;
+  }
+
+  const btn = document.getElementById('btn-run-diagnosis');
+  const loading = document.getElementById('ai-loading');
+  const resultContainer = document.getElementById('ai-diagnosis-result');
+
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner" style="width:18px;height:18px;border-width:2px"></span><span>Analyzing...</span>';
+  loading.style.display = 'block';
+  resultContainer.style.display = 'none';
+
+  try {
+    const payload = {
+      query,
+      patientInfo: {
+        name: state.user?.name,
+        gender: state.user?.gender,
+        dob: state.user?.date_of_birth
+      }
+    };
+
+    const res = await apiFetch('/ai/diagnose', {
+      method: 'POST',
+      body: JSON.stringify(payload)
+    });
+
+    currentDiagnosisData = res;
+    renderDiagnosisResult(res);
+  } catch (err) {
+    showToast(err.message, 'error');
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = '<span class="material-icons-round">auto_awesome</span><span>Analyze with Gemini AI</span>';
+    loading.style.display = 'none';
+  }
+}
+
+function renderDiagnosisResult(data) {
+  const resultContainer = document.getElementById('ai-diagnosis-result');
+  if (!resultContainer) return;
+
+  const d = data.diagnosis;
+  const matchedDocs = data.matched_doctors || [];
+  const urgency = (d.urgency_level || 'moderate').toLowerCase();
+
+  resultContainer.innerHTML = `
+    <!-- Main Diagnosis Summary Card -->
+    <div class="diagnosis-card">
+      <div class="diagnosis-header">
+        <div class="diagnosis-title-group">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+            <span class="badge-gemini">
+              <span class="material-icons-round" style="font-size:0.9rem">auto_awesome</span>
+              Gemini AI Recognized Condition
+            </span>
+            <span style="font-size:0.8rem;color:var(--text-tertiary)">Analyzed just now</span>
+          </div>
+          <h2>${escapeHtml(d.condition_name || 'Medical Condition Identified')}</h2>
+          <p style="color:var(--text-secondary);font-size:0.92rem">
+            ${escapeHtml(d.urgency_label || 'Specialist Evaluation Recommended')}
+          </p>
+
+          <div class="symptoms-detected-list">
+            ${(d.symptoms || []).map(s => `<span class="symptom-tag"><span class="material-icons-round" style="font-size:0.8rem">check</span> ${escapeHtml(s)}</span>`).join('')}
+          </div>
+        </div>
+
+        <div style="text-align:right">
+          <div class="urgency-badge urgency-${urgency}">
+            <span class="material-icons-round" style="font-size:1rem">
+              ${urgency === 'emergency' ? 'warning' : urgency === 'high' ? 'priority_high' : urgency === 'moderate' ? 'schedule' : 'check_circle'}
+            </span>
+            Urgency: ${urgency.toUpperCase()}
+          </div>
+        </div>
+      </div>
+
+      ${d.emergency_warning ? `
+        <div style="background:rgba(239,68,68,0.15);border:1px solid #ef4444;border-radius:var(--radius-md);padding:14px;margin-top:var(--space-md);color:#fca5a5;font-weight:600;display:flex;align-items:center;gap:10px">
+          <span class="material-icons-round" style="font-size:1.8rem;color:#ef4444">emergency</span>
+          <div>
+            <div style="color:#fff;font-size:0.95rem">Urgent Clinical Attention Notice</div>
+            <div style="font-size:0.85rem">${escapeHtml(d.emergency_warning)}</div>
+          </div>
+        </div>
+      ` : ''}
+
+      <div class="diagnosis-body">
+        <div>
+          <h4 style="font-size:0.95rem;font-weight:700;color:var(--text-primary);margin-bottom:8px;display:flex;align-items:center;gap:6px">
+            <span class="material-icons-round" style="color:var(--primary-light)">description</span>
+            Clinical Assessment Overview
+          </h4>
+          <div class="clinical-text-box">
+            ${escapeHtml(d.clinical_assessment || '')}
+          </div>
+        </div>
+
+        <div class="insights-two-col">
+          <div class="insight-card">
+            <h4><span class="material-icons-round">health_and_safety</span> Pre-Consultation Self-Care</h4>
+            <p style="font-size:0.88rem;color:var(--text-secondary);line-height:1.6">
+              ${escapeHtml(d.pre_consultation_advice || 'Maintain rest and avoid strenuous exertion until your appointment.')}
+            </p>
+          </div>
+
+          <div class="insight-card">
+            <h4><span class="material-icons-round">contact_support</span> Questions to Ask Your Doctor</h4>
+            <ul>
+              ${(d.questions_to_ask_doctor || []).map(q => `
+                <li>
+                  <span class="bullet">•</span>
+                  <span>${escapeHtml(q)}</span>
+                </li>
+              `).join('')}
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Recommended Doctors for Booking -->
+    <div>
+      <div class="recommended-doctors-header">
+        <div>
+          <h3 style="font-size:1.3rem;font-weight:700;display:flex;align-items:center;gap:8px">
+            <span class="material-icons-round" style="color:var(--primary-light)">recommend</span>
+            Recommended Specialists for Your Condition
+          </h3>
+          <p style="color:var(--text-secondary);font-size:0.88rem">
+            Matched specifically for <strong>${escapeHtml((d.recommended_specialties || []).join(' & '))}</strong>. Booking with these doctors will automatically share your Gemini condition assessment with them!
+          </p>
+        </div>
+      </div>
+
+      <div class="matched-doctors-grid">
+        ${matchedDocs.map(doc => `
+          <div class="matched-doctor-card">
+            <span class="match-badge-top">
+              <span class="material-icons-round" style="font-size:0.75rem;vertical-align:middle">auto_awesome</span>
+              ${escapeHtml(doc.specialty)} Match
+            </span>
+            <div>
+              <div style="display:flex;gap:var(--space-md);align-items:center;margin-bottom:var(--space-md)">
+                <img src="${doc.avatar_url || ''}" alt="${doc.name}" style="width:64px;height:64px;border-radius:16px;object-fit:cover" onerror="this.style.display='none'">
+                <div>
+                  <h4 style="font-size:1.1rem;font-weight:700;margin-bottom:2px">${escapeHtml(doc.name)}</h4>
+                  <p style="color:var(--primary-light);font-size:0.85rem;font-weight:500">${escapeHtml(doc.specialty)} • ${escapeHtml(doc.qualification)}</p>
+                  <div style="display:flex;align-items:center;gap:8px;font-size:0.82rem;color:var(--text-tertiary);margin-top:4px">
+                    <span style="color:#f59e0b;display:inline-flex;align-items:center;font-weight:600">
+                      <span class="material-icons-round" style="font-size:0.95rem">star</span> ${doc.rating || 4.8}
+                    </span>
+                    <span>•</span>
+                    <span>${doc.experience_years || 10}+ yrs exp</span>
+                  </div>
+                </div>
+              </div>
+              <p style="font-size:0.84rem;color:var(--text-secondary);line-height:1.5;margin-bottom:var(--space-md);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden">
+                ${escapeHtml(doc.bio || '')}
+              </p>
+            </div>
+
+            <div style="display:flex;justify-content:space-between;align-items:center;padding-top:var(--space-md);border-top:1px solid var(--border)">
+              <div>
+                <span style="font-size:0.75rem;color:var(--text-tertiary);display:block">Consultation Fee</span>
+                <span style="font-size:1.15rem;font-weight:700;color:var(--text-primary)">₹${doc.consultation_fee}</span>
+              </div>
+              <button class="btn btn-primary" onclick="bookWithDoctorFromTriage(${doc.id})">
+                <span class="material-icons-round">calendar_today</span>
+                <span>Book Consultation</span>
+              </button>
+            </div>
+          </div>
+        `).join('')}
+      </div>
+    </div>
+  `;
+
+  resultContainer.style.display = 'flex';
+  resultContainer.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function bookWithDoctorFromTriage(doctorId) {
+  if (!currentDiagnosisData || !currentDiagnosisData.diagnosis) {
+    openBooking(doctorId);
+    return;
+  }
+  openBooking(doctorId, currentDiagnosisData.diagnosis);
 }
 

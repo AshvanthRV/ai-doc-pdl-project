@@ -4,7 +4,6 @@ const path = require('path');
 const { getDb } = require('./db');
 
 const app = express();
-const PORT = process.env.PORT || 3000;
 
 // Middleware
 app.use(cors({
@@ -20,6 +19,22 @@ app.use((req, res, next) => {
   next();
 });
 
+// Load environment variables from .env
+const fs = require('fs');
+[path.join(__dirname, '.env'), path.join(__dirname, '..', '.env')].forEach(envFile => {
+  if (fs.existsSync(envFile)) {
+    const lines = fs.readFileSync(envFile, 'utf8').split('\n');
+    lines.forEach(line => {
+      const parts = line.split('=');
+      if (parts.length >= 2 && !process.env[parts[0].trim()]) {
+        process.env[parts[0].trim()] = parts.slice(1).join('=').trim();
+      }
+    });
+  }
+});
+
+const PORT = Number.parseInt(process.env.PORT, 10) || 3000;
+
 // Initialize database
 getDb();
 
@@ -28,6 +43,7 @@ app.use('/api/patients', require('./routes/patients'));
 app.use('/api/doctors', require('./routes/doctors'));
 app.use('/api/appointments', require('./routes/appointments'));
 app.use('/api/notifications', require('./routes/notifications'));
+app.use('/api/ai', require('./routes/ai'));
 
 // Health check
 app.get('/api/health', (req, res) => {
