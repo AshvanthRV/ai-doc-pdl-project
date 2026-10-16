@@ -1,8 +1,5 @@
-/* ========================================
-   MediBook Patient Portal — Application Logic
-   ======================================== */
 
-const API_BASE = 'https://ai-doc-pdl-project-server.vercel.app/api';
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
 // State
 let state = {
@@ -72,7 +69,7 @@ async function handleLogin(e) {
   btn.innerHTML = '<span class="spinner" style="width:20px;height:20px;border-width:2px"></span>';
 
   try {
-    const res = await fetch(`${API_BASE}/patients/login`, {
+    const res = await fetch(`${API_BASE_URL}/patients/login`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({

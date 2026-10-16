@@ -1,8 +1,4 @@
-/* ========================================
-   MediBook Doctor Dashboard — Application Logic
-   ======================================== */
-
-const API_BASE = 'https://ai-doc-pdl-project-server.vercel.app/api';
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
 // Application State
 let state = {
@@ -98,7 +94,7 @@ async function handleLogin(e) {
     const email = document.getElementById('login-email').value.trim();
     const password = document.getElementById('login-password').value;
 
-    const res = await fetch(`${API_BASE}/doctors/login`, {
+    const res = await fetch(`${API_BASE_URL}/doctors/login`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email, password })
@@ -139,7 +135,7 @@ async function apiFetch(url, options = {}) {
   const headers = { 'Content-Type': 'application/json', ...options.headers };
   if (state.token) headers['Authorization'] = `Bearer ${state.token}`;
 
-  const res = await fetch(`${API_BASE}${url}`, { ...options, headers });
+  const res = await fetch(`${API_BASE_URL}${url}`, { ...options, headers });
   const data = await res.json();
 
   if (res.status === 401 || res.status === 403) {
