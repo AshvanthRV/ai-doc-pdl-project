@@ -1,5 +1,5 @@
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
+const API_BASE = 'https://ai-doc-pdl-project-server.vercel.app/api';
 
 // State
 let state = {
@@ -69,7 +69,7 @@ async function handleLogin(e) {
   btn.innerHTML = '<span class="spinner" style="width:20px;height:20px;border-width:2px"></span>';
 
   try {
-    const res = await fetch(`${API_BASE_URL}/patients/login`, {
+    const res = await fetch(`${API_BASE}/patients/login`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -1526,4 +1526,3 @@ function bookWithDoctorFromTriage(doctorId) {
   }
   openBooking(doctorId, currentDiagnosisData.diagnosis);
 }
-
